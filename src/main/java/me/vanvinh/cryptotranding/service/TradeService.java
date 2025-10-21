@@ -2,6 +2,7 @@ package me.vanvinh.cryptotranding.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
@@ -93,6 +94,11 @@ public class TradeService {
             return "USDT";
         }
         throw new RuntimeException("Symbol không hợp lệ");
+    }
+
+    // Get user's trading history
+    public List<Trade> getUserTradingHistory(Long userId) {
+        return tradeRepository.findByUserId(userId);
     }
 }
 
