@@ -9,21 +9,21 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 @Entity
+@Table(name = "user_wallets")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "user_wallets", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "currency"}))
 public class UserWallet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id") // trùng với cột user_id trong DB
+    private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user; // khóa ngoại
+    private String currency;
 
-    private String currency; // USDT, BTC, ETH
     private BigDecimal balance;
 }

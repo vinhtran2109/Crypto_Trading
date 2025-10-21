@@ -1,5 +1,10 @@
 package me.vanvinh.cryptotranding.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Service;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import me.vanvinh.cryptotranding.dto.TradeRequestDTO;
@@ -9,10 +14,6 @@ import me.vanvinh.cryptotranding.entity.UserWallet;
 import me.vanvinh.cryptotranding.repository.AggregatedPriceRepository;
 import me.vanvinh.cryptotranding.repository.TradeRepository;
 import me.vanvinh.cryptotranding.repository.UserWalletRepository;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -28,33 +29,70 @@ public class TradeService {
         AggregatedPrice price = priceRepository.findBySymbol(dto.getSymbol())
                 .orElseThrow(() -> new RuntimeException("Symbol không tồn tại"));
 
-        // 2. Lấy ví người dùng
-        UserWallet wallet = walletRepository.findByUserIdAndCurrency(userId, dto.getSymbol())
-                .orElseThrow(() -> new RuntimeException("Ví không tồn tại"));
+        // 2. Tách symbol thành base và quote currency
+        // Ví dụ: BTCUSDT -> base = BTC, quote = USDT
+        String baseCurrency = extractBaseCurrency(dto.getSymbol());
+        String quoteCurrency = extractQuoteCurrency(dto.getSymbol());
 
-        BigDecimal total = dto.getQuantity().multiply(dto.getSide().equals("BUY") ? price.getBestAsk() : price.getBestBid());
+        // 3. Lấy ví base và quote
+        UserWallet baseWallet = walletRepository.findByUser_IdAndCurrency(userId, baseCurrency)
+                .orElseThrow(() -> new RuntimeException("Ví " + baseCurrency + " không tồn tại"));
+        
+        UserWallet quoteWallet = walletRepository.findByUser_IdAndCurrency(userId, quoteCurrency)
+                .orElseThrow(() -> new RuntimeException("Ví " + quoteCurrency + " không tồn tại"));
 
-        if(dto.getSide().equals("BUY") && wallet.getBalance().compareTo(total) < 0) {
-            throw new RuntimeException("Số dư không đủ để mua");
-        }
+        // 4. Tính tổng tiền giao dịch
+        BigDecimal tradePrice = dto.getSide().equals("BUY") ? price.getBestAsk() : price.getBestBid();
+        BigDecimal total = dto.getQuantity().multiply(tradePrice);
 
+        // 5. Thực hiện giao dịch
         if(dto.getSide().equals("BUY")) {
-            wallet.setBalance(wallet.getBalance().subtract(total));
+            // Mua: trừ quote currency (USDT), cộng base currency (BTC)
+            if(quoteWallet.getBalance().compareTo(total) < 0) {
+                throw new RuntimeException("Số dư " + quoteCurrency + " không đủ để mua");
+            }
+            quoteWallet.setBalance(quoteWallet.getBalance().subtract(total));
+            baseWallet.setBalance(baseWallet.getBalance().add(dto.getQuantity()));
         } else {
-            wallet.setBalance(wallet.getBalance().add(total));
+            // Bán: trừ base currency (BTC), cộng quote currency (USDT)
+            if(baseWallet.getBalance().compareTo(dto.getQuantity()) < 0) {
+                throw new RuntimeException("Số dư " + baseCurrency + " không đủ để bán");
+            }
+            baseWallet.setBalance(baseWallet.getBalance().subtract(dto.getQuantity()));
+            quoteWallet.setBalance(quoteWallet.getBalance().add(total));
         }
-        walletRepository.save(wallet);
+        
+        walletRepository.save(baseWallet);
+        walletRepository.save(quoteWallet);
 
-        // 3. Tạo giao dịch
+        // 6. Tạo giao dịch
         Trade trade = new Trade();
-        trade.setUser(wallet.getUser());
+        trade.setUser(baseWallet.getUser());
         trade.setSymbol(dto.getSymbol());
         trade.setQuantity(dto.getQuantity());
         trade.setSide(dto.getSide());
-        trade.setPrice(dto.getSide().equals("BUY") ? price.getBestAsk() : price.getBestBid());
+        trade.setPrice(tradePrice);
         trade.setTimestamp(LocalDateTime.now());
 
         return tradeRepository.save(trade);
+    }
+
+    // Helper method để tách base currency từ symbol
+    private String extractBaseCurrency(String symbol) {
+        // BTCUSDT -> BTC, ETHUSDT -> ETH
+        if (symbol.endsWith("USDT")) {
+            return symbol.substring(0, symbol.length() - 4);
+        }
+        throw new RuntimeException("Symbol không hợp lệ");
+    }
+
+    // Helper method để tách quote currency từ symbol
+    private String extractQuoteCurrency(String symbol) {
+        // BTCUSDT -> USDT, ETHUSDT -> USDT
+        if (symbol.endsWith("USDT")) {
+            return "USDT";
+        }
+        throw new RuntimeException("Symbol không hợp lệ");
     }
 }
 

@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface UserWalletRepository extends JpaRepository<UserWallet, Long> {
     List<UserWallet> findByUserId(Long userId);
     Optional<UserWallet> findByUserIdAndCurrency(Long userId, String currency);
+    Optional<UserWallet> findByUser_IdAndCurrency(Long userId, String currency);
+
 }
