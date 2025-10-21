@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "user_wallets", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "curency"}))
+@Table(name = "user_wallets", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "currency"}))
 public class UserWallet {
 
     @Id

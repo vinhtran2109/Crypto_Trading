@@ -6,4 +6,6 @@ import java.util.Optional;
 
 public interface AggregatedPriceRepository extends JpaRepository<AggregatedPrice, Long> {
     Optional<AggregatedPrice> findBySymbol(String symbol);
+    Optional<AggregatedPrice> findFirstBySymbolOrderByUpdatedAtDesc(String symbol);
+
 }
