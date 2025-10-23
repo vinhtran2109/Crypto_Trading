@@ -23,7 +23,7 @@ public class TradeController {
     private final TradeService tradeService;
 
     @PostMapping("/{userId}")
-    public ResponseEntity<Trade> trade(@PathVariable Long userId, @RequestBody TradeRequestDTO dto) {
+    public ResponseEntity<Trade> trade(@PathVariable Long userId, @RequestBody TradeRequestDTO dto) throws Exception {
         Trade trade = tradeService.executeTrade(userId, dto);
         return ResponseEntity.ok(trade);
     }

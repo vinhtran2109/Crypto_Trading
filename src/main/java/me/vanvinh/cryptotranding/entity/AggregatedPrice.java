@@ -1,9 +1,16 @@
 package me.vanvinh.cryptotranding.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
@@ -17,6 +24,8 @@ public class AggregatedPrice {
 
     private String symbol;
     private BigDecimal bestBid;
+    private String bestBidSource;
     private BigDecimal bestAsk;
+    private String bestAskSource;
     private LocalDateTime updatedAt;
 }
